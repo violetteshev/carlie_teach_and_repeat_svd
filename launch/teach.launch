@@ -3,7 +3,7 @@
     <node pkg="carlie_teach_and_repeat" type="teach.py" name="teach_node" output="screen">
         <!-- remap topics -->
         <remap from="odom" to="/pose_camera/odom/sample"/>
-        <remap from="image_raw" to="/usb_cam/image_raw"/>
+        <remap from="image_raw" to="/rgbd_camera/color/image_rect_color"/>
 
         <!-- arguments -->
         <param name="keyframe_distance_threshold" value="0.25" type="double"/> 
