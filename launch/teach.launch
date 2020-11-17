@@ -1,4 +1,5 @@
 <launch>
+    <param name="max_forward_velocity" value="0.5" type="double"/>
 
     <node pkg="carlie_teach_and_repeat" type="teach.py" name="teach_node" output="screen">
         <!-- remap topics -->
