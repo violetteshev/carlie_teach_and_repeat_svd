@@ -9,7 +9,7 @@
         <param name="keyframe_distance_threshold" value="0.25" type="double"/> 
         <param name="image_resize_x" value="640" type="int"/> 
         <param name="image_resize_y" value="480" type="int"/> 
-        <param name="base_path" value="/home/nvidia/Documents" type="string"/> 
+        <param name="base_path" value="/home/james/Documents" type="string"/> 
         <param name="route_name" value="route_1" type="string"/> 
     </node>
 </launch>

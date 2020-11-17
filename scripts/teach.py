@@ -32,7 +32,7 @@ class TeachNode():
         # Constants
         self.KEYFRAME_DISTANCE_THRESHOLD = rospy.get_param('~keyframe_distance_threshold', 0.25)
         self.IMAGE_RESIZE = (rospy.get_param('~image_resize_x', 640), rospy.get_param('~image_resize_y', 480))
-        self.BASE_PATH = rospy.get_param('~base_path', '/home/james/Documents')
+        self.BASE_PATH = rospy.get_param('~base_path', '/home/nvidia/Documents')
         self.ROUTE_NAME = rospy.get_param('~route_name', 'route_1')
         self.CV_BRIDGE = CvBridge()
 
