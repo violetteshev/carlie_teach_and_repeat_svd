@@ -1,6 +1,8 @@
 <launch>
+    <!-- Global Parameters -->
     <param name="max_forward_velocity" value="0.5" type="double"/>
 
+    <!-- Teach Node -->
     <node pkg="carlie_teach_and_repeat" type="teach.py" name="teach_node" output="screen">
         <!-- remap topics -->
         <remap from="odom" to="/pose_camera/odom/sample"/>

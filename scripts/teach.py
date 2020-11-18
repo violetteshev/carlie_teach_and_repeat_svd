@@ -22,8 +22,9 @@ class TeachNode():
     def __init__(self):
         # Parameters
         self.frame_id = 0
-        self.previous_odom = None # odometry pose of previous image
-        self.current_odom = None # odometry pose of current image
+        self.previous_odom = None # odometry pose of previous frame
+        self.current_odom = None # odometry pose of current frame
+        self.first_frame_odom = None # odometry of first frame
 
         # ROS Init Node
         rospy.init_node('teach_node')
@@ -42,7 +43,7 @@ class TeachNode():
             shutil.rmtree(self.save_path) # will delete existing save_path directory and its contents
         os.makedirs(self.save_path)
         self.dataset_file = open(os.path.join(self.save_path, 'dataset.txt'), 'w')
-        self.dataset_file.write("Frame_ID, relative_x(m), relative_y(m), relative_yaw(rad)\n")
+        self.dataset_file.write("Frame_ID, relative_odom_x(m), relative_odom_y(m), relative_odom_yaw(rad), relative_pose_x(m), relative_pose_y(m), relative_pose_yaw(rad)\n")
 
         # ROS Subcribers
         self.odom_subscriber = rospy.Subscriber('odom', Odometry, self.Odom_Callback)
@@ -66,14 +67,29 @@ class TeachNode():
             rospy.logwarn('Unable to get relative pose transform. Make sure odometry topic is published and the teach node is subscribed to the correct topic.')
             return # safeguard
 
-        # Relative odometry        
-        current_odom_tf = tf_conversions.fromMsg(self.current_odom.pose.pose)
-        previous_odom_tf = tf_conversions.fromMsg(self.previous_odom.pose.pose)
-        relative_odom_tf = previous_odom_tf.Inverse() * current_odom_tf
-        relative_pose = tf_conversions.toMsg(relative_odom_tf)
+        # Relative odometry from previous frame and relative pose from first frame
+        if self.frame_id != 0:
+            current_odom_tf = tf_conversions.fromMsg(self.current_odom.pose.pose)
 
-        if relative_odom_tf.p.Norm() < self.KEYFRAME_DISTANCE_THRESHOLD and self.frame_id >= 1:
+            # relative odometry
+            previous_odom_tf = tf_conversions.fromMsg(self.previous_odom.pose.pose)
+            relative_odom_tf = previous_odom_tf.Inverse() * current_odom_tf
+            relative_odom = tf_conversions.toMsg(relative_odom_tf)
+
+            # relative pose
+            relative_pose_tf = self.first_frame_tf.Inverse() * current_odom_tf
+            relative_pose = tf_conversions.toMsg(relative_pose_tf)
+
+        else:
+            # first frame 
+            self.first_frame_odom = self.current_odom.pose.pose # set odom for first frame
+            self.first_frame_tf = tf_conversions.fromMsg(self.first_frame_odom)
+            relative_pose = Pose() # to ensure all zeros
+            relative_odom = Pose() # to ensure all zeros
+
+        if self.frame_id >= 1 and relative_odom_tf.p.Norm() < self.KEYFRAME_DISTANCE_THRESHOLD:
             return
+            
 
         # Attempt to convert ROS image into CV data type (i.e. numpy array)
         try:
@@ -94,8 +110,9 @@ class TeachNode():
             return
 
         # Write to dataset file
-        (roll, pitch, yaw) = euler_from_quaternion([relative_pose.orientation.x, relative_pose.orientation.y, relative_pose.orientation.z, relative_pose.orientation.w])
-        self.dataset_file.write('%s, %0.4f, %0.4f, %0.4f\n'%(frame_name, relative_pose.position.x, relative_pose.position.y, yaw))
+        (odom_roll, odom_pitch, odom_yaw) = euler_from_quaternion([relative_odom.orientation.x, relative_odom.orientation.y, relative_odom.orientation.z, relative_odom.orientation.w])
+        (pose_roll, pose_pitch, pose_yaw) = euler_from_quaternion([relative_pose.orientation.x, relative_pose.orientation.y, relative_pose.orientation.z, relative_pose.orientation.w])
+        self.dataset_file.write('%s, %0.4f, %0.4f, %0.4f, %0.4f, %0.4f, %0.4f\n'%(frame_name, relative_odom.position.x, relative_odom.position.y, odom_yaw, relative_pose.position.x, relative_pose.position.y, pose_yaw))
 
         # Update frame ID and previous odom
         self.frame_id += 1

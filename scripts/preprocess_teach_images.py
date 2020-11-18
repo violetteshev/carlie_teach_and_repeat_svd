@@ -1,0 +1,65 @@
+#!/usr/bin/env python
+
+### IMPORT MODULES ###
+import os
+import sys
+import shutil
+import argparse
+import numpy as np
+import matplotlib.pyplot as plt
+
+# In order to import OpenCV when using Python 3, need to remove ROS python2.7 dist packages.
+if sys.version_info[0] == 3 and '/opt/ros/kinetic/lib/python2.7/dist-packages' in sys.path:
+    sys.path.remove('/opt/ros/kinetic/lib/python2.7/dist-packages') # so can import opencv for python3, silly ROS
+import cv2 as cv
+
+
+### ARGUMENTS AND MAIN ###
+def ParseArguments():
+    parser = argparse.ArgumentParser(description='Used to visualise a Carlie teach dataset')
+    parser.add_argument('teach_dataset_file', metavar='T', type=str, nargs=1, help='path to a teach dataset text file (required)')
+    args = parser.parse_args()
+
+    return args
+
+if __name__ == "__main__":
+    # Pass arguments
+    args = ParseArguments()
+
+    # Read in teach dataset file (CSV file) into numpy array
+    # teach_dataset = [frame_id, relative_odom_x, relative_odom_y, relative_odom_yaw, relative_pose_x, relative_pose_y, relative_pose_yaw]
+    teach_dataset = np.genfromtxt(args.teach_dataset_file[0], delimiter=', ', skip_header=1)
+    teach_dataset[:,0] = np.arange(0, teach_dataset.shape[0]) # add in frame IDs to column 1, else will be NAN
+
+    # Create preprocessed data path
+    base_path = os.path.dirname(args.teach_dataset_file[0])
+    processed_path = base_path + "_processed"
+    if os.path.exists(processed_path):
+        shutil.rmtree(processed_path) # will delete existing save_path directory and its contents
+    os.makedirs(processed_path)
+
+    # Copy dataset text file
+    shutil.copyfile(args.teach_dataset_file[0], os.path.join(processed_path, "dataset.txt"))
+
+    # Loop over frame preprocessing each
+    cv.namedWindow('Image In', cv.WINDOW_NORMAL)
+    cv.namedWindow('Image Out', cv.WINDOW_NORMAL)
+
+    for row in teach_dataset:
+        # Read in raw image
+        frame_name = 'frame_%06d.png'%(row[0])
+        img_in = cv.imread(os.path.join(base_path, frame_name))
+
+        # Convert to grayscale and resize
+        img_out = cv.cvtColor(img_in, cv.COLOR_BGR2GRAY)
+        img_out = cv.resize(img_out, (64, 48))
+        # ADD IN ANY OTHER PREPROCESSING STEPS YOU WANT HERE - REMEMBER YOU WILL PROBABLY WANT TO DO THE SAME TO YOUR QUERY IMAGES IN YOUR REPEAT CODE
+
+        # Write out processed image
+        cv.imwrite(os.path.join(processed_path, frame_name), img_out)
+
+        # Show image raw and processed image
+        cv.imshow('Image In', img_in)
+        cv.imshow('Image Out', img_out)
+        cv.waitKey(1)
+

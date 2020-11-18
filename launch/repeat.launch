@@ -1,0 +1,22 @@
+<launch>
+    <!-- Global Parameters -->
+    <param name="max_forward_velocity" value="0.5" type="double"/>
+
+    <!-- Teach Node -->
+    <node pkg="carlie_teach_and_repeat" type="repeat.py" name="repeat_node" output="screen">
+        <!-- remap topics -->
+        <remap from="odom" to="/pose_camera/odom/sample"/>
+        <remap from="image_raw" to="/rgbd_camera/color/image_rect_color"/>
+
+        <!-- repeat image matcher arguments -->
+        <param name="process_every_nth_frame" value="3" type="int"/> 
+        <param name="teach_dataset" value="/home/nvidia/Documents/route_1_processed/dataset.txt" type="string" />
+
+        <!-- save repeat dataset arguments -->
+        <param name="save_repeat_dataset" value="True" type="bool"/>
+        <param name="save_image_resize_x" value="640" type="int"/> <!-- IMPORTANT! This is the image resize if saving the repeat data -->
+        <param name="save_image_resize_y" value="480" type="int"/> <!-- IMPORTANT! This is the image resize if saving the repeat data -->
+        <param name="base_path" value="/home/nvidia/Documents" type="string"/> 
+        <param name="route_name" value="route_1_repeat_a" type="string"/> 
+    </node>
+</launch>
