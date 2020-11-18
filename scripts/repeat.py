@@ -73,7 +73,7 @@ class RepeatNode():
         self.image_subscriber = rospy.Subscriber('image_raw', Image, self.Image_Callback)
 
         # ROS Publishers
-        self.ackermann_cmd_publisher = rospy.Publisher('/carlie/ackermann_cmd_autonomous', AckermannDriveStamped, queue_size=10)
+        self.ackermann_cmd_publisher = rospy.Publisher('/carlie/ackermann_cmd/autonomous', AckermannDriveStamped, queue_size=10)
 
 		# Setup ROS Ackermann Drive Command Message
         self.ackermann_cmd = AckermannDriveStamped()
@@ -166,6 +166,7 @@ class RepeatNode():
 
         # Image Matching
         match_teach_id, lateral_offset = self.ImageMatching(img_bgr, relative_odom)
+        rospy.loginfo('Matched To Teach Frame ID: %d'%(match_teach_id))
 
         # Controller
         self.Controller(match_teach_id, lateral_offset)
@@ -189,8 +190,9 @@ class RepeatNode():
         img_proc_patch = self.ImageCropCenter(self.img_proc, 0.6)
 
         # Loop through teach dataset within given search radius
-        start_idx = max(self.current_matched_teach_frame_id-self.FRAME_SEARCH_WINDOW, 0)
-        end_idx = min(self.current_matched_teach_frame_id+self.FRAME_SEARCH_WINDOW+1, self.teach_dataset.shape[0])
+        start_idx = int(max(self.current_matched_teach_frame_id-self.FRAME_SEARCH_WINDOW, 0))
+        end_idx = int(min(self.current_matched_teach_frame_id+self.FRAME_SEARCH_WINDOW+1, self.teach_dataset.shape[0]))
+        # rospy.loginfo('Start: %d, End: %d'%(start_idx, end_idx))
         for teach_frame_id in self.teach_dataset[start_idx:end_idx, 0]:
 
             # Read in teach processed img
@@ -205,7 +207,7 @@ class RepeatNode():
             if best_score == None or best_score < max_val:
                 best_score = max_val
                 best_max_location = max_location
-                self.current_matched_teach_frame_id = teach_frame_id
+                self.current_matched_teach_frame_id = int(teach_frame_id)
 
         # Max location is top_left want center
         patch_center_location = np.array([max_location[0], max_location[1]]) + np.array([img_proc_patch.shape[1]/2.0, img_proc_patch.shape[0]/2.0])
@@ -235,8 +237,8 @@ class RepeatNode():
         pose_frame_lookahead = 2
         lateral_offset_scale_factor = 0.1
         rho_gain = 0.6 # rho_gain > 0
-        alpha_gain = 1 # (alpha_gain - rho_gain) > 0
-        beta_gain = -0.5 # beta_gain < 0
+        alpha_gain = -0.7 # (alpha_gain - rho_gain) > 0
+        beta_gain = 0 # beta_gain < 0
 
         wheel_base = rospy.get_param('wheel_base', 0.312)
         max_foward_vel = rospy.get_param('max_forward_velocity', 0.5)
