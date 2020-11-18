@@ -9,7 +9,7 @@ import cv2 as cv
 import numpy as np
 import tf_conversions
 from cv_bridge import CvBridge
-from tf.transformations import euler_from_quaternion
+from tf.transformations import euler_from_quaternion, quaternion_from_euler
 
 ### IMPORT MESSAGE TYPES ###
 from sensor_msgs.msg import Image
@@ -211,7 +211,7 @@ class RepeatNode():
 
         # Max location is top_left want center
         patch_center_location = np.array([max_location[0], max_location[1]]) + np.array([img_proc_patch.shape[1]/2.0, img_proc_patch.shape[0]/2.0])
-        lateral_offset = patch_center_location[0] - self.img_proc.shape[1] // 2
+        lateral_offset = self.img_proc.shape[1] // 2 - patch_center_location[0]
 
         # Update visualiation
         self.update_visualisation = True
@@ -226,15 +226,16 @@ class RepeatNode():
         cropy = int(round(img.shape[0] * portion))
 
         y,x = img.shape
-        startx = x//2-(cropx//2)
-        starty = y//2-(cropy//2)
+        startx = int(x//2-(cropx//2))
+        starty = int(y//2-(cropy//2))
 
         return img[starty:starty+cropy,startx:startx+cropx]
 
     # CONTROLLER
     def Controller(self, match_teach_id, lateral_offset):
         # CONSTANTS
-        pose_frame_lookahead = 2
+        goal_angle_frame_lookahead = 2
+        goal_position_frame_lookahead = 2
         lateral_offset_scale_factor = 0.1
         rho_gain = 0.6 # rho_gain > 0
         alpha_gain = -0.7 # (alpha_gain - rho_gain) > 0
@@ -246,28 +247,88 @@ class RepeatNode():
         min_steering_angle = rospy.get_param('min_steering_angle', math.radians(-45.0))
 
         # Determine relative pose difference between current position and a teach frame specified look-ahead distance
-        deltas = np.array([0, lateral_offset*lateral_offset_scale_factor, 0])
-        deltas += self.teach_dataset[match_teach_id+1:match_teach_id+pose_frame_lookahead+1, 1:4].sum(axis=0)
+        goal_pos_relative_tf = self.RelativeTFBetweenFrames(match_teach_id, match_teach_id+goal_position_frame_lookahead)
 
-        # Adapted From Peter Corke's Textbook - Driving a Car-Like Robot to a Pose (pg. 106)
-        theta = 0 # impossible to analytically determine with single frame matching, assume minimal, so set to 0
-        rho = np.sum(np.sqrt(np.power(deltas[0:2], 2)))
-        alpha = np.arctan(deltas[1]/deltas[0]) - theta
-        beta = -theta - alpha
+        rospy.loginfo('Before Lateral Offset: %0.5f, %f'%(goal_pos_relative_tf.p.Norm(), goal_pos_relative_tf.M.GetRPY()[2]))
 
-        lin_vel = min(max(rho_gain * rho, 0), max_foward_vel)
-        ang_vel = alpha_gain * alpha + beta_gain * beta
+        # need to add in offset from current matched teach frame
+        lateral_pose = Pose()
+        lateral_pose.position.y = lateral_offset_scale_factor*lateral_offset
+        lateral_pose.orientation.w = 1 # to indicate no rotation
+        lateral_pose_tf = tf_conversions.fromMsg(lateral_pose)
+        goal_pos_relative_tf = lateral_pose_tf * goal_pos_relative_tf
+        # rospy.loginfo('Lateral Offset: %0.5f, %f'%(lateral_pose_tf.p.Norm(), lateral_pose_tf.M.GetRPY()[2]))
+        if lateral_pose_tf.p.Norm() != 0:
+            rospy.logwarn('After Lateral Offset: %0.5f, %f'%(goal_pos_relative_tf.p.Norm(), goal_pos_relative_tf.M.GetRPY()[2]))
+
+
+        # Determine angle between goal frame and frame some distance ahead of it
+        goal_angle_relative_tf = self.RelativeTFBetweenFrames(match_teach_id+goal_position_frame_lookahead, match_teach_id+goal_angle_frame_lookahead)
+
+
+        # rospy.loginfo(goal_angle_relative_tf.p.Norm())
+        # rospy.loginfo('Goal Position Angle %0.5f, Goal Angle Angle %0.5f'%(goal_pos_relative_tf.M.GetRPY()[2], goal_angle_relative_tf.M.GetRPY()[2]))
+
+        # Determine angle between goal frame and frame n frames ahead of goal frame
+        # for row in self.teach_dataset[match_teach_id]
+
+
+        # deltas = np.array([0, lateral_offset*lateral_offset_scale_factor, 0])
+        # deltas += self.teach_dataset[match_teach_id+1:match_teach_id+pose_frame_lookahead+1, 1:4].sum(axis=0)
+
+        # # Adapted From Peter Corke's Textbook - Driving a Car-Like Robot to a Pose (pg. 106)
+        # theta = 0 # impossible to analytically determine with single frame matching, assume minimal, so set to 0
+        # rho = np.sum(np.sqrt(np.power(deltas[0:2], 2)))
+        # alpha = np.arctan(deltas[1]/deltas[0]) - theta
+        # beta = -theta - alpha
+
+        # lin_vel = min(max(rho_gain * rho, 0), max_foward_vel)
+        # ang_vel = alpha_gain * alpha + beta_gain * beta
         
-        if lin_vel != 0:
-            steering_angle = np.arctan(ang_vel * wheel_base / lin_vel)
-        else:
-            steering_angle = 0
-        steering_angle = min(max(steering_angle, min_steering_angle), max_steering_angle)
+        # if lin_vel != 0:
+        #     steering_angle = np.arctan(ang_vel * wheel_base / lin_vel)
+        # else:
+        #     steering_angle = 0
+        # steering_angle = min(max(steering_angle, min_steering_angle), max_steering_angle)
 
-        # Set values and publish message
-        self.ackermann_cmd.drive.speed = lin_vel
-        self.ackermann_cmd.drive.steering_angle = steering_angle
-        self.ackermann_cmd_publisher.publish(self.ackermann_cmd)
+        # # Set values and publish message
+        # self.ackermann_cmd.drive.speed = lin_vel
+        # self.ackermann_cmd.drive.steering_angle = steering_angle
+        # self.ackermann_cmd_publisher.publish(self.ackermann_cmd)
+
+    
+    def RelativeTFBetweenFrames(self, current_frame_id, goal_frame_id):
+        if current_frame_id == goal_frame_id:
+            pose = Pose()
+            pose.orientation.w = 1
+            return tf_conversions.fromMsg(pose)
+
+        relative_frame_tf = None
+        # In the teach dataset want the relative pose from current frame to the goal frame. 
+        # This data is stored in the current_frame+1 to goal_frame+1
+        for row in self.teach_dataset[current_frame_id+1:goal_frame_id+1, 1:4]:
+            # Get quaternion from yaw
+            quaternion = quaternion_from_euler(0, 0, row[2])
+
+            # Setup ROS Pose - will contain relative odom from previous teach frame
+            frame_odom = Pose()
+            frame_odom.position.x = row[0]
+            frame_odom.position.y = row[1]
+            frame_odom.orientation.x = quaternion[0]
+            frame_odom.orientation.y = quaternion[1]
+            frame_odom.orientation.z = quaternion[2]
+            frame_odom.orientation.w = quaternion[3]
+
+            # Convert into tf
+            frame_tf = tf_conversions.fromMsg(frame_odom)
+
+            # Build up relative tf
+            if relative_frame_tf == None:
+                relative_frame_tf = frame_tf
+            else:
+                relative_frame_tf = relative_frame_tf * frame_tf
+
+        return relative_frame_tf
 
 
 ### MAIN ####
