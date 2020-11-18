@@ -17,7 +17,7 @@ import cv2 as cv
 def ParseArguments():
     parser = argparse.ArgumentParser(description='Used to visualise a Carlie teach dataset')
     parser.add_argument('teach_dataset_file', metavar='T', type=str, nargs=1, help='path to a teach dataset text file (required)')
-    # parser.add_argument('--repeat_dataset_file', '-R', metavar='R', type=str, nargs=1, help='path to a teach dataset text file (optional)')
+    parser.add_argument('--repeat_dataset_file', '-R', metavar='R', type=str, nargs=1, help='path to a teach dataset text file (optional)')
     args = parser.parse_args()
 
     return args
@@ -40,8 +40,8 @@ if __name__ == "__main__":
     # Plot
     fig = plt.figure(figsize=(8,8))
     plt.plot(teach_dataset[:,4], teach_dataset[:,5], color='b', marker='x', markersize=6, linestyle='-', linewidth=1, label='Teach Path')
-    # if args.repeat_dataset_file != None:
-    #     plt.plot(repeat_dataset[:,4], repeat_dataset[:,5], color='r', marker='+', markersize=6, linestyle='-', linewidth=1, label='Repeat Path')
+    if args.repeat_dataset_file != None:
+        plt.plot(repeat_dataset[:,4], repeat_dataset[:,5], color='r', marker='+', markersize=6, linestyle='-', linewidth=1, label='Repeat Path')
 
     plt.legend()
     plt.axis('equal')

@@ -20,7 +20,7 @@ class TeachNode():
 
     # INITIALISATION
     def __init__(self):
-        # Parameters
+        # Variables
         self.frame_id = 0
         self.previous_odom = None # odometry pose of previous frame
         self.current_odom = None # odometry pose of current frame

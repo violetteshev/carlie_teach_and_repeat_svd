@@ -6,14 +6,15 @@
     <node pkg="carlie_teach_and_repeat" type="repeat.py" name="repeat_node" output="screen">
         <!-- remap topics -->
         <remap from="odom" to="/pose_camera/odom/sample"/>
-        <remap from="image_raw" to="/usb_cam/image_raw"/>
+        <!-- <remap from="image_raw" to="/usb_cam/image_raw"/> -->
+        <remap from="image_raw" to="/rgbd_camera/color/image_rect_color"/>
 
         <!-- arguments -->
-        <param name="process_every_nth_frame" value="5" type="int"/> 
+        <param name="process_every_nth_frame" value="1" type="int"/> 
         <param name="teach_dataset" value="/home/james/Documents/route_1_processed/dataset.txt" type="string" />
 
         <!-- save repeat dataset arguments -->
-        <param name="save_repeat_dataset" value="True" type="bool"/>
+        <param name="save_repeat_dataset" value="False" type="bool"/>
         <param name="save_image_resize_x" value="640" type="int"/> <!-- IMPORTANT! This is the image resize if saving the repeat data -->
         <param name="save_image_resize_y" value="480" type="int"/> <!-- IMPORTANT! This is the image resize if saving the repeat data -->
         <param name="base_path" value="/home/james/Documents" type="string"/> 
