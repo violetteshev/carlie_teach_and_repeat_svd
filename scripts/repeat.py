@@ -244,10 +244,10 @@ class RepeatNode():
         # CONSTANTS
         # goal_angle_frame_lookahead = 2
         goal_position_frame_lookahead = 2
-        lateral_offset_scale_factor = 0.1
+        lateral_offset_scale_factor = 0.02
         rho_gain = 0.6 # rho_gain > 0
-        alpha_gain = -0.7 # (alpha_gain - rho_gain) > 0
-        beta_gain = 0 # beta_gain < 0
+        alpha_gain = 0.7 # (alpha_gain - rho_gain) > 0
+        beta_gain = 0.3 # beta_gain < 0
 
         wheel_base = rospy.get_param('wheel_base', 0.312)
         max_foward_vel = rospy.get_param('max_forward_velocity', 0.5)
@@ -263,7 +263,7 @@ class RepeatNode():
         lateral_pose.orientation.w = 1 # to indicate no rotation
 
         lateral_pose_trans = transform_tools.pose_msg_to_trans(lateral_pose)
-        goal_pos_relative_trans = transform_tools.diff_trans(lateral_pose_trans, goal_pos_relative_trans)
+        goal_pos_relative_trans = transform_tools.append_trans(lateral_pose_trans, goal_pos_relative_trans)
 
         # Get distance (rho) and angle (alpha) to target frame position relative to current position, and
         # Get desired orientation (beta) wish to have at the target frame
@@ -271,7 +271,7 @@ class RepeatNode():
         alpha = np.arctan2(goal_pos_relative_trans[1,-1], goal_pos_relative_trans[0,-1])
         beta = transform_tools.yaw_from_trans(goal_pos_relative_trans)
 
-        rospy.loginfo('Distance: %0.4f,\t Angle2Goal: %0.4f,\t Angle2Pose: %0.4f'%(rho, math.degrees(alpha), math.degrees(beta)))
+        rospy.loginfo('Rho: %0.4f, alpha: %0.4f, Beta: %0.4f'%(rho, math.degrees(alpha), math.degrees(beta)))
 
         lin_vel = min(max(rho_gain * rho, 0), max_foward_vel)
         ang_vel = alpha_gain * alpha + beta_gain * beta
@@ -295,7 +295,7 @@ class RepeatNode():
             rospy.logerr('HERE')
             return transform_tools.pose_msg_to_trans(pose)
 
-        relative_frame_tf = None
+        relative_frame_tf = np.array([])
         # In the teach dataset want the relative pose from current frame to the goal frame. 
         # This data is stored in the current_frame+1 to goal_frame+1
         for row in self.teach_dataset[current_frame_id+1:goal_frame_id+1, 1:4]:
@@ -316,7 +316,7 @@ class RepeatNode():
             frame_tf = transform_tools.pose_msg_to_trans(frame_odom)
 
             # Build up relative tf
-            if relative_frame_tf == None:
+            if relative_frame_tf.size == 0:
                 relative_frame_tf = frame_tf
             else:
                 relative_frame_tf = transform_tools.append_trans(relative_frame_tf, frame_tf)
