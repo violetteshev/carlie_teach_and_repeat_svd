@@ -83,18 +83,19 @@ class TeachNode():
                 self.recording = not self.recording # change recording state
                 rospy.loginfo('Recording is now: %s'%(self.recording))
 
-                # reset frame_id, open dataset file and write header
-                self.frame_id = 0
-                self.dataset_file = open(os.path.join(self.save_path, 'dataset.txt'), 'w')
-                self.dataset_file.write("Frame_ID, relative_odom_x(m), relative_odom_y(m), relative_odom_yaw(rad), relative_pose_x(m), relative_pose_y(m), relative_pose_yaw(rad)\n")
+                # do some stuff if recording has changed
+                if self.recording:
+                    # reset frame_id, open dataset file and write header
+                    self.frame_id = 0
+                    self.dataset_file = open(os.path.join(self.save_path, 'dataset.txt'), 'w')
+                    self.dataset_file.write("Frame_ID, relative_odom_x(m), relative_odom_y(m), relative_odom_yaw(rad), relative_pose_x(m), relative_pose_y(m), relative_pose_yaw(rad)\n")
 
-                # delete any old route data and recreate folder
-                if os.path.exists(self.save_path):
-                    shutil.rmtree(self.save_path) # will delete existing save_path directory and its contents
-                os.makedirs(self.save_path)
-
-            if self.recording == False:
-                self.dataset_file.close() # close dataset file
+                    # delete any old route data and recreate folder
+                    if os.path.exists(self.save_path):
+                        shutil.rmtree(self.save_path) # will delete existing save_path directory and its contents
+                    os.makedirs(self.save_path)
+                else:
+                    self.dataset_file.close() # close dataset file
 
     # ODOM CALLBACK
     def Odom_Callback(self, data):
