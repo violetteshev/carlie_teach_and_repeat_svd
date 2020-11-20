@@ -8,11 +8,15 @@
         <remap from="odom" to="/pose_camera/odom/sample"/>
         <remap from="image_raw" to="/rgbd_camera/color/image_rect_color"/>
 
-        <!-- arguments -->
+        <!-- key arguments -->
         <param name="keyframe_distance_threshold" value="0.25" type="double"/> 
-        <param name="image_resize_x" value="640" type="int"/> 
-        <param name="image_resize_y" value="480" type="int"/> 
+        <param name="save_image_resize_x" value="640" type="int"/> 
+        <param name="save_image_resize_y" value="480" type="int"/> 
         <param name="base_path" value="/home/nvidia/Documents" type="string"/> 
         <param name="route_name" value="route_1" type="string"/> 
+
+        <!-- other arguments -->
+        <param name="visualisation_on" value="True" type="bool"/> 
+        
     </node>
 </launch>

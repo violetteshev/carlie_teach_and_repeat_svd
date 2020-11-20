@@ -1,16 +1,22 @@
 <launch>
+    <!-- Global Parameters -->
+    <param name="max_forward_velocity" value="0.5" type="double"/>
 
+    <!-- Teach Node -->
     <node pkg="carlie_teach_and_repeat" type="teach.py" name="teach_node" output="screen">
         <!-- remap topics -->
         <remap from="odom" to="/pose_camera/odom/sample"/>
-        <!-- <remap from="image_raw" to="/usb_cam/image_raw"/> -->
         <remap from="image_raw" to="/rgbd_camera/color/image_rect_color"/>
 
-        <!-- arguments -->
+        <!-- key arguments -->
         <param name="keyframe_distance_threshold" value="0.25" type="double"/> 
-        <param name="image_resize_x" value="640" type="int"/> 
-        <param name="image_resize_y" value="480" type="int"/> 
+        <param name="save_image_resize_x" value="640" type="int"/> 
+        <param name="save_image_resize_y" value="480" type="int"/> 
         <param name="base_path" value="/home/james/Documents" type="string"/> 
         <param name="route_name" value="route_1" type="string"/> 
+
+        <!-- other arguments -->
+        <param name="visualisation_on" value="True" type="bool"/> 
+        
     </node>
 </launch>
