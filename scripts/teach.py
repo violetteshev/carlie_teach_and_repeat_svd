@@ -114,7 +114,7 @@ class TeachNode():
     # IMAGE CALLBACK
     def Image_Callback(self, data):
         # Wait until recording is true, if gamepad is been used to start/stop recording
-        if self.USE_GAMEPAD_FOR_RECORDING_SIGNAL and self.recording == False:
+        if self.USE_GAMEPAD_FOR_RECORDING_SIGNAL and self.recording != 1:
             return
 
         # Only start process images once odom callback has run once
