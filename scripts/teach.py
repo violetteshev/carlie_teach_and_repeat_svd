@@ -10,12 +10,13 @@ from cv_bridge import CvBridge
 from teach_repeat_common import *
 
 ### IMPORT MESSAGE TYPES ###
+from sensor_msgs.msg import Joy
 from sensor_msgs.msg import Image
 from geometry_msgs.msg import Pose
 from nav_msgs.msg import Odometry
 
 # IMPORT GAMEPAD DICTIONARIES FROM CARLIE_BASE
-# from carlie_base.gamepad_dictionaries import *
+from carlie_base.gamepad_dictionaries import *
 
 ### TEACH NODE CLASS ###
 class TeachNode():
@@ -29,6 +30,8 @@ class TeachNode():
         self.current_odom = None # odometry pose of current frame
         self.first_frame_odom = None # odometry of first frame
         self.odom_topic_recieved = False
+        self.recording = False
+        self.prev_b_button_state = False
 
         # ROS INIT NODE
         rospy.init_node('teach_node')
@@ -40,6 +43,7 @@ class TeachNode():
         self.BASE_PATH = rospy.get_param('~base_path', '/home/nvidia/Documents')
         self.ROUTE_NAME = rospy.get_param('~route_name', 'route_1')
         self.VISUALISATION_ON = rospy.get_param('~visualisation_on', True)
+        self.USE_GAMEPAD_FOR_RECORDING_SIGNAL = rospy.get_param('~use_gamepad_for_recording_signal', True)
         self.CV_BRIDGE = CvBridge()
 
         # Setup save directory and dataset file
@@ -51,7 +55,7 @@ class TeachNode():
         self.dataset_file.write("Frame_ID, relative_odom_x(m), relative_odom_y(m), relative_odom_yaw(rad), relative_pose_x(m), relative_pose_y(m), relative_pose_yaw(rad)\n")
 
         # ROS Subcribers
-        # self.joy_subscriber = rospy.Subscriber("joy", Joy, self.JoyData_Callback)
+        self.joy_subscriber = rospy.Subscriber("joy", Joy, self.JoyData_Callback)
         self.odom_subscriber = rospy.Subscriber('odom', Odometry, self.Odom_Callback)
         self.image_subscriber = rospy.Subscriber('image_raw', Image, self.Image_Callback)
 
@@ -66,6 +70,20 @@ class TeachNode():
                 cv.waitKey(1)
                 self.update_visualisation = False
 
+     # GAMEPAD SUBCRIBER CALLBACK
+    def JoyData_Callback(self, data):
+        b_button_state = data.buttons[BUTTONS_DICT["B"]]
+
+        if b_button_state != self.prev_b_button_state:
+            # change of state
+            self.prev_b_button_state = b_button_state
+            if b_button_state == True: # pressed
+                self.recording = not self.recording # change recording state
+                rospy.loginfo('Recording is now: %s'%(self.recording))
+
+            if self.recording == False:
+                self.frame_id = 0 # reset frame_id
+
     # ODOM CALLBACK
     def Odom_Callback(self, data):
         self.odom_topic_recieved = True
@@ -73,6 +91,10 @@ class TeachNode():
 
     # IMAGE CALLBACK
     def Image_Callback(self, data):
+        # Wait until recording is true, if gamepad is been used to start/stop recording
+        if self.USE_GAMEPAD_FOR_RECORDING_SIGNAL and self.recording == False:
+            return
+
         # Only start process images once odom callback has run once
         if not self.odom_topic_recieved:
             rospy.loginfo('Waiting until odometry data is received. Make sure topic is published and topic name is correct.')

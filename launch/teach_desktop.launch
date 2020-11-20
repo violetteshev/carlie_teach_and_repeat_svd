@@ -17,6 +17,7 @@
 
         <!-- other arguments -->
         <param name="visualisation_on" value="True" type="bool"/> 
+        <param name="use_gamepad_for_recording_signal" value="False" type="bool"/> 
         
     </node>
 </launch>
