@@ -7,6 +7,7 @@ import sys
 import argparse
 import numpy as np
 import matplotlib.pyplot as plt
+from teach_repeat_common import *
 
 # In order to import OpenCV when using Python 3, need to remove ROS python2.7 dist packages.
 if sys.version_info[0] == 3 and '/opt/ros/kinetic/lib/python2.7/dist-packages' in sys.path:
@@ -28,13 +29,11 @@ if __name__ == "__main__":
 
     # Read in teach dataset file (CSV file) into numpy array
     # teach_dataset = [frame_id, relative_odom_x, relative_odom_y, relative_odom_yaw, relative_pose_x, relative_pose_y, relative_pose_yaw]
-    teach_dataset = np.genfromtxt(args.teach_dataset_file[0], delimiter=', ', skip_header=1)
-    teach_dataset[:,0] = np.arange(0, teach_dataset.shape[0]) # add in frame IDs to column 1, else will be NAN
+    teach_dataset = ReadDatasetFile(args.teach_dataset_file[0])
 
     # Read in repeat dataset file (CSV file) into numpy array if provided
     if args.repeat_dataset_file != None:
-        repeat_dataset = np.genfromtxt(args.repeat_dataset_file[0], delimiter=', ', skip_header=1)
-        repeat_dataset[:,0] = np.arange(0, repeat_dataset.shape[0]) # add in frame IDs to column 1, else will be NAN
+        repeat_dataset = ReadDatasetFile(args.repeat_dataset_file[0])
 
 
     # Plot

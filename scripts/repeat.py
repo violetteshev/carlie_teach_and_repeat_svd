@@ -91,11 +91,7 @@ class RepeatNode():
             self.teach_dataset_processed_path = os.path.dirname(self.TEACH_DATASET_FILE)
             self.teach_dataset_path = os.path.dirname(self.TEACH_DATASET_FILE)
 
-        self.teach_dataset = np.genfromtxt(self.TEACH_DATASET_FILE, delimiter=', ', skip_header=1)
-        if len(self.teach_dataset.shape) == 1:
-            self.teach_dataset = np.reshape(self.teach_dataset, (1, 7))
-        self.teach_dataset[:,0] = np.arange(0, self.teach_dataset.shape[0]) # add in frame IDs to column 1, else will be NAN
-        rospy.loginfo('Teach Dataset Size: %d'%(self.teach_dataset.shape[0]))
+        self.teach_dataset = ReadDatasetFile(self.TEACH_DATASET_FILE)
 
         # ROS SUBSCRIBERS
         self.odom_subscriber = rospy.Subscriber('odom', Odometry, self.Odom_Callback)
@@ -180,7 +176,6 @@ class RepeatNode():
 
         # Image Matching
         match_teach_id, lateral_offset = self.ImageMatching(img_bgr, relative_odom_trans)
-        # rospy.loginfo('Matched To Teach Frame ID: %d'%(match_teach_id))
 
         # Controller
         self.Controller(match_teach_id, lateral_offset)
@@ -257,7 +252,6 @@ class RepeatNode():
             self.ackermann_cmd_publisher.publish(self.ackermann_cmd)
             rospy.loginfo('Believe we are at the end of the teach path.')
             return
-            # goal_pos_relative_trans = np.identity(4)
 
         # Add in transform due to offset from current matched frame
         quaternion = quaternion_from_euler(0, 0, offsets[2])
@@ -279,8 +273,8 @@ class RepeatNode():
         alpha = np.arctan2(goal_pos_relative_trans[1,-1], goal_pos_relative_trans[0,-1])
         beta = transform_tools.yaw_from_trans(goal_pos_relative_trans)
 
-        rospy.loginfo('Matched Frame ID: %d'%(match_teach_id))
-        rospy.loginfo('Rho: %0.4f, alpha: %0.4f, Beta: %0.4f'%(rho, math.degrees(alpha), math.degrees(beta)))
+        # rospy.loginfo('Matched Frame ID: %d'%(match_teach_id))
+        # rospy.loginfo('Rho (m): %0.3f, alpha (deg): %0.2f, Beta (deg): %0.2f'%(rho, math.degrees(alpha), math.degrees(beta)))
 
         lin_vel = min(max(self.RHO_GAIN * rho, 0), self.MAX_FORWARD_VELOCITY)
         ang_vel = self.ALPHA_GAIN * alpha + self.BETA_GAIN * beta

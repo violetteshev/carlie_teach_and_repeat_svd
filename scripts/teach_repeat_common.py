@@ -5,6 +5,15 @@ import cv2 as cv
 import numpy as np
 import transform_tools
 
+# Reads in a dataset file
+def ReadDatasetFile(dataset_file_path):
+    dataset = np.genfromtxt(dataset_file_path, delimiter=', ', skip_header=1)
+    if len(dataset.shape) == 1: # will occur if there is a single teach in the dataset
+        dataset = np.reshape(dataset, (1,dataset.shape[0]))
+    dataset[:,0] = np.arange(0, dataset.shape[0]) # add in frame IDs to column 1, else will be NAN
+
+    return dataset
+
 
 # Calculate Transform Between Two Pose Messages
 def CalculateTransformBetweenPoseMessages(pose_at_current_frame, pose_at_previous_frame):
@@ -64,7 +73,7 @@ def ImageCropCenter(img, portion):
     else:
         return img[starty:starty+patch_height,startx:startx+patch_width, :]
         
-
+# Draws a rectangle on image
 def DrawCropPatchOnImage(img, portion, center=np.array([])):
     if len(img.shape) == 2:
         img_height, img_width = img.shape

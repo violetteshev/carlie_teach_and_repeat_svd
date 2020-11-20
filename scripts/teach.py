@@ -70,6 +70,7 @@ class TeachNode():
 
         while not rospy.is_shutdown():
             if self.update_visualisation and self.VISUALISATION_ON:
+                teach_img = cv.imread(os.path.join(self.save_path, 'frame_%06d.png'%(self.frame_id-1)))
                 cv.imshow('Frame', self.current_image)
                 cv.waitKey(1)
                 self.update_visualisation = False
