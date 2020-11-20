@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-
 ### IMPORT CLASSES ###
 import numpy as np
 import transforms3d as t3

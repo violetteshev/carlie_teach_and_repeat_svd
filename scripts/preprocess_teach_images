@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 ### IMPORT MODULES ###
 import os
@@ -7,7 +7,7 @@ import shutil
 import argparse
 import numpy as np
 import matplotlib.pyplot as plt
-from teach_repeat_common import *
+from teach_repeat.teach_repeat_common import *
 
 # In order to import OpenCV when using Python 3, need to remove ROS python2.7 dist packages.
 if sys.version_info[0] == 3 and '/opt/ros/kinetic/lib/python2.7/dist-packages' in sys.path:

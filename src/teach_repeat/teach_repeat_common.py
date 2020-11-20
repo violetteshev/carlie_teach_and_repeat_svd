@@ -1,9 +1,7 @@
-#!/usr/bin/env python
-
 import os
 import cv2 as cv
 import numpy as np
-import transform_tools
+from . import transform_tools
 
 # Reads in a dataset file
 def ReadDatasetFile(dataset_file_path):
