@@ -30,7 +30,7 @@ class TeachNode():
         self.current_odom = None # odometry pose of current frame
         self.first_frame_odom = None # odometry of first frame
         self.odom_topic_recieved = False
-        self.recording = False
+        self.recording = 0
         self.prev_b_button_state = False
 
         # ROS INIT NODE
@@ -52,9 +52,8 @@ class TeachNode():
             shutil.rmtree(self.save_path) # will delete existing save_path directory and its contents
         os.makedirs(self.save_path)
 
-        if self.USE_GAMEPAD_FOR_RECORDING_SIGNAL == False:
-            self.dataset_file = open(os.path.join(self.save_path, 'dataset.txt'), 'w')
-            self.dataset_file.write("Frame_ID, relative_odom_x(m), relative_odom_y(m), relative_odom_yaw(rad), relative_pose_x(m), relative_pose_y(m), relative_pose_yaw(rad)\n")
+        self.dataset_file = open(os.path.join(self.save_path, 'dataset.txt'), 'w')
+        self.dataset_file.write("Frame_ID, relative_odom_x(m), relative_odom_y(m), relative_odom_yaw(rad), relative_pose_x(m), relative_pose_y(m), relative_pose_yaw(rad)\n")
 
         # ROS Subcribers
         self.joy_subscriber = rospy.Subscriber("joy", Joy, self.JoyData_Callback)
@@ -66,11 +65,17 @@ class TeachNode():
             cv.namedWindow('Frame', cv.WINDOW_NORMAL)
 
         # ROS Spin
+        if self.USE_GAMEPAD_FOR_RECORDING_SIGNAL:
+            rospy.loginfo('Press B on the Gamepad to Start Recording.')
+
         while not rospy.is_shutdown():
             if self.update_visualisation and self.VISUALISATION_ON:
                 cv.imshow('Frame', self.current_image)
                 cv.waitKey(1)
                 self.update_visualisation = False
+
+            if self.recording == 2:
+                rospy.signal_shutdown('teach recording completed')
 
      # GAMEPAD SUBCRIBER CALLBACK
     def JoyData_Callback(self, data):
@@ -80,22 +85,26 @@ class TeachNode():
             # change of state
             self.prev_b_button_state = b_button_state
             if b_button_state == True: # pressed
-                self.recording = not self.recording # change recording state
-                rospy.loginfo('Recording is now: %s'%(self.recording))
+                self.recording += 1
+                # self.recording = not self.recording # change recording state
+                if self.recording == 1:
+                    rospy.loginfo('Teach Path Recording Started')
+                elif self.recording == 2:
+                    rospy.loginfo('Teach Path Recording Stopped')
 
-                # do some stuff if recording has changed
-                if self.recording:
-                    # delete any old route data and recreate folder
-                    if os.path.exists(self.save_path):
-                        shutil.rmtree(self.save_path) # will delete existing save_path directory and its contents
-                    os.makedirs(self.save_path)
+                # # do some stuff if recording has changed
+                # if self.recording:
+                #     # delete any old route data and recreate folder
+                #     if os.path.exists(self.save_path):
+                #         shutil.rmtree(self.save_path) # will delete existing save_path directory and its contents
+                #     os.makedirs(self.save_path)
 
-                    # reset frame_id, open dataset file and write header
-                    self.frame_id = 0
-                    self.dataset_file = open(os.path.join(self.save_path, 'dataset.txt'), 'w')
-                    self.dataset_file.write("Frame_ID, relative_odom_x(m), relative_odom_y(m), relative_odom_yaw(rad), relative_pose_x(m), relative_pose_y(m), relative_pose_yaw(rad)\n")
-                else:
-                    self.dataset_file.close() # close dataset file
+                #     # reset frame_id, open dataset file and write header
+                #     self.frame_id = 0
+                #     self.dataset_file = open(os.path.join(self.save_path, 'dataset.txt'), 'w')
+                #     self.dataset_file.write("Frame_ID, relative_odom_x(m), relative_odom_y(m), relative_odom_yaw(rad), relative_pose_x(m), relative_pose_y(m), relative_pose_yaw(rad)\n")
+                # else:
+                #     self.dataset_file.close() # close dataset file
 
     # ODOM CALLBACK
     def Odom_Callback(self, data):
