@@ -29,6 +29,9 @@ if __name__ == "__main__":
     # Read in teach dataset file (CSV file) into numpy array
     # teach_dataset = [frame_id, relative_odom_x, relative_odom_y, relative_odom_yaw, relative_pose_x, relative_pose_y, relative_pose_yaw]
     teach_dataset = np.genfromtxt(args.teach_dataset_file[0], delimiter=', ', skip_header=1)
+    if len(teach_dataset.shape) == 1:
+        teach_dataset = np.reshape(teach_dataset, (1,7))
+
     teach_dataset[:,0] = np.arange(0, teach_dataset.shape[0]) # add in frame IDs to column 1, else will be NAN
 
     # Create preprocessed data path

@@ -92,7 +92,10 @@ class RepeatNode():
             self.teach_dataset_path = os.path.dirname(self.TEACH_DATASET_FILE)
 
         self.teach_dataset = np.genfromtxt(self.TEACH_DATASET_FILE, delimiter=', ', skip_header=1)
+        if len(self.teach_dataset.shape) == 1:
+            self.teach_dataset = np.reshape(self.teach_dataset, (1, 7))
         self.teach_dataset[:,0] = np.arange(0, self.teach_dataset.shape[0]) # add in frame IDs to column 1, else will be NAN
+        rospy.loginfo('Teach Dataset Size: %d'%(self.teach_dataset.shape[0]))
 
         # ROS SUBSCRIBERS
         self.odom_subscriber = rospy.Subscriber('odom', Odometry, self.Odom_Callback)
@@ -207,7 +210,6 @@ class RepeatNode():
         end_idx = int(min(self.current_matched_teach_frame_id+self.FRAME_SEARCH_WINDOW+1, self.teach_dataset.shape[0]))
         # rospy.loginfo('Start: %d, End: %d'%(start_idx, end_idx))
         for teach_frame_id in self.teach_dataset[start_idx:end_idx, 0]:
-
             # Read in teach processed img
             teach_img = cv.imread(os.path.join(self.teach_dataset_processed_path, 'frame_%06d.png'%(teach_frame_id)), cv.IMREAD_GRAYSCALE)
 
@@ -232,7 +234,7 @@ class RepeatNode():
         self.patch_center_location = np.array([max_location[0], max_location[1]]) + np.array([img_proc_patch.shape[1]/2.0, img_proc_patch.shape[0]/2.0])
         
         # y-offset will be positive if car is to the left of the teach frame (i.e. the repeat patch was found on the right hand side of the teach image)
-        y_offset = self.patch_center_location[0] - img_proc.shape[1] // 2
+        y_offset = img_proc.shape[1]//2 - self.patch_center_location[0]
         
         # create offsets array [x-offset, y-offset, yaw-offset] - assume x-offset and yaw-offset are zero
         offsets = np.array([self.X_OFFSET_SCALE_FACTOR*0, self.Y_OFFSET_SCALE_FACTOR*y_offset, self.YAW_OFFSET_SCALE_FACTOR*0])
@@ -254,6 +256,8 @@ class RepeatNode():
             self.ackermann_cmd.drive.speed = 0
             self.ackermann_cmd_publisher.publish(self.ackermann_cmd)
             rospy.loginfo('Believe we are at the end of the teach path.')
+            return
+            # goal_pos_relative_trans = np.identity(4)
 
         # Add in transform due to offset from current matched frame
         quaternion = quaternion_from_euler(0, 0, offsets[2])
@@ -275,7 +279,8 @@ class RepeatNode():
         alpha = np.arctan2(goal_pos_relative_trans[1,-1], goal_pos_relative_trans[0,-1])
         beta = transform_tools.yaw_from_trans(goal_pos_relative_trans)
 
-        # rospy.loginfo('Rho: %0.4f, alpha: %0.4f, Beta: %0.4f'%(rho, math.degrees(alpha), math.degrees(beta)))
+        rospy.loginfo('Matched Frame ID: %d'%(match_teach_id))
+        rospy.loginfo('Rho: %0.4f, alpha: %0.4f, Beta: %0.4f'%(rho, math.degrees(alpha), math.degrees(beta)))
 
         lin_vel = min(max(self.RHO_GAIN * rho, 0), self.MAX_FORWARD_VELOCITY)
         ang_vel = self.ALPHA_GAIN * alpha + self.BETA_GAIN * beta
