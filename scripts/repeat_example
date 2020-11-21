@@ -186,11 +186,11 @@ class RepeatNode():
                 rospy.logwarn("Was unable to save repeat image (ID = %d)"%(self.frame_id) + ". Error: " + str(e))
 
         # Image Matching
-        match_teach_id, lateral_offset = self.ImageMatching(img_bgr, relative_odom_trans)
+        self.current_matched_teach_frame_id, lateral_offset = self.ImageMatching(img_bgr, relative_odom_trans)
         self.update_visualisation = True
 
         # Controller
-        self.Controller(match_teach_id, lateral_offset)
+        self.Controller(self.current_matched_teach_frame_id, lateral_offset)
 
         # Update frame ID and previous odom
         self.frame_id += 1
