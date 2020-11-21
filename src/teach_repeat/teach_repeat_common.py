@@ -1,7 +1,15 @@
+
+# IMPORT MODULES
 import os
-import cv2 as cv
+import sys
+# import cv2 as cv
 import numpy as np
 from . import transform_tools
+
+# In order to import OpenCV when using Python 3, need to remove ROS python2.7 dist packages.
+if sys.version_info[0] == 3 and '/opt/ros/kinetic/lib/python2.7/dist-packages' in sys.path:
+    sys.path.remove('/opt/ros/kinetic/lib/python2.7/dist-packages') # so can import opencv for python3, silly ROS
+import cv2 as cv
 
 # Reads in a dataset file
 def ReadDatasetFile(dataset_file_path):
