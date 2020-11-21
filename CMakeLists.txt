@@ -166,7 +166,7 @@ endif()
 
 catkin_install_python(
   PROGRAMS
-  scripts/teach scripts/repeat scripts/preprocess_teach_images scripts/plot_teach_data
+  scripts/teach scripts/repeat scripts/repeat_example scripts/preprocess_teach_images scripts/plot_teach_data
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION})
 
 install(FILES requirements.txt

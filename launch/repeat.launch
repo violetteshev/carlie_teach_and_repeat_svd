@@ -15,6 +15,11 @@
         <param name="y_offset_scale_factor" value="0.02" type="double"/> 
         <param name="yaw_offset_scale_factor" value="0.0" type="double"/> 
 
+        <param name="frame_search_window" value="3" type="int"/>
+        <param name="image_comparison_size_x" value="64" type="int"/>
+        <param name="image_comparison_size_y" value="48" type="int"/>
+        <param name="patch_portion" value="0.6" type="double"/> 
+
         <!-- controller arguments -->
         <param name="target_frame_lookahead" value="2" type="int"/> 
         <param name="rho_gain" value="0.6" type="double"/> <!-- distance proportional gain -->
