@@ -1,2 +1,2 @@
 transforms3d
-opencv-contrib-python
+opencv-python

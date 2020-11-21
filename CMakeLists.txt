@@ -7,7 +7,12 @@ project(carlie_teach_and_repeat)
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
-find_package(catkin REQUIRED catkin_virtualenv)
+find_package(catkin REQUIRED)
+
+if(ENABLE_CARLIE_PYTHON3)
+  find_package(catkin_virtualenv)
+endif()
+
 
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
@@ -116,9 +121,11 @@ include_directories(
 # ${catkin_INCLUDE_DIRS}
 )
 
-catkin_generate_virtualenv(
-  PYTHON_INTERPRETER python3
-)
+if(ENABLE_CARLIE_PYTHON3)
+  catkin_generate_virtualenv(
+    PYTHON_INTERPRETER python3
+  )
+endif()
 
 ## Declare a C++ library
 # add_library(${PROJECT_NAME}
