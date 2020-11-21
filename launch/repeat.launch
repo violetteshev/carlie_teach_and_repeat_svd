@@ -28,8 +28,8 @@
 
         <!-- save repeat dataset arguments -->
         <param name="save_repeat_dataset" value="False" type="bool"/>
-        <param name="save_image_resize_x" value="640" type="int"/> <!-- IMPORTANT! This is the image resize if saving the repeat data -->
-        <param name="save_image_resize_y" value="480" type="int"/> <!-- IMPORTANT! This is the image resize if saving the repeat data -->
+        <param name="save_image_resize_x" value="640" type="int"/> <!-- IMPORTANT! This is the image resize if saving the repeat data, not the size the images will be compared at -->
+        <param name="save_image_resize_y" value="480" type="int"/> <!-- IMPORTANT! This is the image resize if saving the repeat data, not the size the images will be compared at -->
         <param name="base_path" value="/home/nvidia/Documents" type="string"/> 
         <param name="route_name" value="route_1_repeat_a" type="string"/> 
 
