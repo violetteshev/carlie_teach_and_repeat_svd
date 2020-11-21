@@ -1,12 +1,11 @@
 #!/usr/bin/env python
 
-
 ### IMPORT CLASSES ###
 import os
 import sys
 import rospy
 import shutil
-# import cv2 as cv
+import cv2 as cv
 from cv_bridge import CvBridge
 
 import teach_repeat.transform_tools as transform_tools
@@ -21,11 +20,11 @@ from nav_msgs.msg import Odometry
 # IMPORT GAMEPAD DICTIONARIES FROM CARLIE_BASE
 from carlie_base.gamepad_dictionaries import *
 
+# # In order to import OpenCV when using Python 3, need to remove ROS python2.7 dist packages.
+# if sys.version_info[0] == 3 and '/opt/ros/kinetic/lib/python2.7/dist-packages' in sys.path:
+#     sys.path.remove('/opt/ros/kinetic/lib/python2.7/dist-packages') # so can import opencv for python3, silly ROS
+# import cv2 as cv
 
-# In order to import OpenCV when using Python 3, need to remove ROS python2.7 dist packages.
-if sys.version_info[0] == 3 and '/opt/ros/kinetic/lib/python2.7/dist-packages' in sys.path:
-    sys.path.remove('/opt/ros/kinetic/lib/python2.7/dist-packages') # so can import opencv for python3, silly ROS
-import cv2 as cv
 
 ### TEACH NODE CLASS ###
 class TeachNode():
