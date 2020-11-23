@@ -199,13 +199,93 @@ class RepeatNode():
         self.previous_odom = self.current_odom
 
 
+    def countInliers(self, repeat_img, teach_img):
+        # Initiate detector
+        detector = cv.ORB_create(patchSize=16)
+        
+        # Find the keypoints and descriptors
+        kp1 = detector.detect(repeat_img, None)
+        kp2 = detector.detect(teach_img, None)
+        # compute the descriptors
+        kp1, des1 = detector.compute(repeat_img, kp1)
+        kp2, des2 = detector.compute(teach_img, kp2)
+
+        #rospy.loginfo('img %f %f' % (teach_img.shape[0], teach_img.shape[1]))
+        #rospy.loginfo('kp2 %d' % (len(kp2)))
+        #rospy.loginfo('des type %s' % (type(des2)))
+        #kp1, des1 = detector.detectAndCompute(repeat_img, None)
+        #kp2, des2 = detector.detectAndCompute(teach_img, None)
+
+        #rospy.loginfo('img %f %f' % (repeat_img.shape[0], repeat_img.shape[1]))
+        
+        # Matching
+        '''
+        FLANN_INDEX_KDTREE = 1
+        index_params = dict(algorithm = FLANN_INDEX_KDTREE, trees = 5)
+        search_params = dict(checks = 50)
+        flann = cv.FlannBasedMatcher(index_params, search_params)
+        matches = flann.knnMatch(des1, des2, k=2)
+        '''
+        #rospy.loginfo('shape 0 %d %d' % (des1.shape[0], des2.shape[0]))
+        #rospy.loginfo('shape 1 %d %d' % (des1.shape[1], des2.shape[1]))
+
+        # create BFMatcher object
+        bf = cv.BFMatcher(cv.NORM_HAMMING, crossCheck=False)
+        # Match descriptors.
+        matches = bf.knnMatch(des1,des2, k = 2)
+        #rospy.loginfo('des type %s' % (type(des2)))
+
+        # create BFMatcher object
+        #rospy.loginfo('matches %d' % len(matches))
+        
+        # store all the good matches as per Lowe's ratio test.
+        good = []
+        for m in matches:
+            if m[0].distance < 0.7*m[1].distance:
+                good.append(m)
+
+        #rospy.loginfo('matches 0: %f %f' % (matches[0][0].distance, matches[0][1].distance))
+        #matches = sorted(matches, key = lambda x:x.distance)
+        #good = matches[:10]
+        MIN_MATCH_COUNT = 10
+        #rospy.loginfo('len good %d' % len(good))
+        if len(good)>MIN_MATCH_COUNT:
+            src_pts = np.float32([ kp1[m[0].queryIdx].pt for m in good ]).reshape(-1,1,2)
+            dst_pts = np.float32([ kp2[m[0].trainIdx].pt for m in good ]).reshape(-1,1,2)
+            M, mask = cv.findHomography(src_pts, dst_pts, cv.RANSAC,5.0)
+            matchesMask = mask.ravel().tolist()
+            return (np.sum(matchesMask), M)
+        else:
+            #rospy.loginfo('Not enough matches')
+            return (0, None)
+
+
     # IMAGE MATCHING - THIS IS THE FUNCTION YOU WILL CREATE
     def ImageMatching(self, img_bgr, relative_odom_trans):
-        ### ADD YOUR OWN CODE ###
+        # Setup comparison temp variables
+        best_score = None
+        best_m = None
+        best_match_frame_id = None
 
         # STEP 1 - PREPROCESS IMAGE IF REQUIRED
+        # Preprocess repeat image
+        img_proc = cv.cvtColor(img_bgr, cv.COLOR_BGR2GRAY)
+        #img_proc = cv.resize(img_proc, self.IMAGE_COMPARISON_SIZE)
 
-        # STEP 2 - FIND BEST MATCH IN TEACH SET 
+        # STEP 2 - FIND BEST MATCH IN TEACH SET
+        start_idx = int(max(self.current_matched_teach_frame_id-self.FRAME_SEARCH_WINDOW, 0))
+        end_idx = int(min(self.current_matched_teach_frame_id+self.FRAME_SEARCH_WINDOW+1, self.teach_dataset.shape[0]))
+        # rospy.loginfo('Start: %d, End: %d'%(start_idx, end_idx))
+        for teach_frame_id in self.teach_dataset[start_idx:end_idx, 0]:
+            # Read in teach processed img
+            teach_img = cv.imread(os.path.join(self.teach_dataset_processed_path, 'frame_%06d.png'%(teach_frame_id)), cv.IMREAD_GRAYSCALE)
+            inliers_num, M = self.countInliers(img_proc, teach_img)
+
+            if best_score == None or best_score < inliers_num:
+                best_score = inliers_num
+                best_m = M
+                best_match_frame_id = int(teach_frame_id)
+                best_teach_img = teach_img
 
         # STEP 3 - FIND THE POSITION OF THE REPEAT FRAME RELATIVE TO THE BEST MATCHED TEACH FRAME
         # offsets should be measured relative to the best matched teach image coordinate frame, as in
@@ -213,8 +293,29 @@ class RepeatNode():
         # y-offset should be positive if the car is to the left of the best matched teach frame
         # yaw-offset will be positive if car has rotated to the left
 
-        # return - the matched teach frame ID and the relative offsets from matched teach frame to current repeat image
-        return 0, np.array([0, 0, 0])
+        img_proc_small = cv.resize(img_proc, self.IMAGE_COMPARISON_SIZE)
+        img_proc_patch = ImageCropCenter(img_proc_small, self.PATCH_PORTION)
+        best_teach_img_small = cv.resize(best_teach_img, (64, 48))
+        result = cv.matchTemplate(best_teach_img_small, img_proc_patch, cv.TM_CCOEFF_NORMED)
+        _, _, _, max_location = cv.minMaxLoc(result)
+
+        # h, w = img_proc.shape
+        # pts = np.float32([[0,0],[0,h-1],[w-1,h-1],[w-1,0]]).reshape(-1,1,2)
+        # dst = cv.perspectiveTransform(pts, best_m)
+        # rospy.loginfo(dst)
+
+        # Max location is top_left want center (max location is x,y not y,x like image coordinates)
+        self.patch_center_location = np.array([max_location[0], max_location[1]]) + np.array([img_proc_patch.shape[1]/2.0, img_proc_patch.shape[0]/2.0])
+        
+        # y-offset will be positive if car is to the left of the teach frame (i.e. the repeat patch was found on the right hand side of the teach image)
+        y_offset = img_proc.shape[1]//2 - self.patch_center_location[0]
+        
+        # create offsets array [x-offset, y-offset, yaw-offset] - assume x-offset and yaw-offset are zero
+        offsets = np.array([self.X_OFFSET_SCALE_FACTOR*0, self.Y_OFFSET_SCALE_FACTOR*y_offset, self.YAW_OFFSET_SCALE_FACTOR*0])
+
+        #rospy.loginfo(offsets)
+        # return
+        return best_match_frame_id, offsets
 
     # CONTROLLER
     def Controller(self, match_teach_id, offsets):

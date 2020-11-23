@@ -3,7 +3,7 @@
     <param name="max_forward_velocity" value="0.5" type="double"/>
 
     <!-- Teach Node -->
-    <node pkg="carlie_teach_and_repeat" type="repeat_example" name="repeat_node" output="screen">
+    <node pkg="carlie_teach_and_repeat_svd" type="repeat" name="repeat_node" output="screen">
         <!-- remap topics -->
         <remap from="odom" to="/pose_camera/odom/sample"/>
         <remap from="image_raw" to="/rgbd_camera/color/image_rect_color"/>
